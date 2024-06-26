@@ -127,50 +127,6 @@ def main():
     else:
         print("Invalid choice. Please try again.")
 
-    # user_spotify  = input("Do you want to use Spotify? (y/n) ")
-    # if user_spotify == "y":
-    #     user_id = "6niwco3w1t5vjo511n09z5pbz"
-    #     playlists = get_user_public_playlists(user_id)
-    #     all_tracks = []
-    #     for playlist in playlists:
-    #         print(f"Getting tracks from playlist: {playlist['name']}")
-    #         playlist_tracks = get_playlist_tracks(playlist['id'])
-    #         all_tracks.extend(playlist_tracks)
-    # else:
-    #     all_tracks = get_manual_recommendations()
-   
-
-    # #tracks = get_playlist_tracks(playlist_id)
-    # mood = input("How are you feeling? (e.g. happy, sad, relaxing) ")
-   
-    # print(mood_recommendations(mood, all_tracks))
-
-
 if __name__ == "__main__":
         main()
-
-
-
-
-# mood = input("How are you feeling? (e.g. happy, sad, relaxing) ")
-# response = (
-#     prompt=f"Generate a playlist based on the mood '{mood}'",
-#     engine="text-davinci-002",
-#     temperature=0.5,
-#     max_tokens=100
-# )
-
-# playlist_id = response.choices[0].text
-
-# playlists = get_user_public_playlists(user_id)
-# for playlist in playlists:
-#     if playlist['id'] == playlist_id:
-#         tracks = get_playlist_tracks(playlist_id)
-#         print("Playlist:")
-#         for track in tracks:
-#             print(f"Name: {track['name']}")
-#             print(f"Artists: {', '.join(track['artists'])}")
-#             print(f"Album: {track['album']}")
-#             print(f"ID: {track['id']}")
-#             print("---")
 
