@@ -60,9 +60,6 @@ def get_user_public_playlists(user_id, limit=50):
         }
         playlists.append(playlist_info)
     return playlists
-# user_id = "6niwco3w1t5vjo511n09z5pbz"
-# playlists = print(get_user_public_playlists(user_id))
-
 
 def mood_recommendations(mood,tracks):
     track_descriptions = [f"{track['name']} by {', '.join(track['artists'])}" for track in tracks[:10]]
