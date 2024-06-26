@@ -1,7 +1,9 @@
 import os
+import sqlite3
 import requests
 import openai
 from openai import OpenAI
+
 OPENAI_API_KEY = os.getenv('OPENAI_KEY')
 SPOTIFY_CLIENT_ID = os.getenv('SPOTIFY_CLIENT_ID')
 SPOTIFY_CLIENT_SECRET = os.getenv('SPOTIFY_CLIENT_SECRET')
@@ -16,10 +18,24 @@ auth_response_data = auth_response.json()
 access_token = auth_response_data['access_token']
 headers = {'Authorization': 'Bearer {token}'.format(token=access_token)}
 BASE_URL = 'https://api.spotify.com/v1/'
+
+def setup_database():
+    conn = sqlite3.connect('moodify.db')
+    c = conn.cursor()
+    c.execute('CREATE TABLE IF NOT EXISTS users (user_id TEXT PRIMARY KEY, mood TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS recommendations (user_id TEXT, track_id TEXT, mood TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS songs (track_id TEXT PRIMARY KEY, name TEXT, artist TEXT, album TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS playlists (playlist_id TEXT PRIMARY KEY, name TEXT, owner TEXT, public BOOLEAN, collaborative BOOLEAN, tracks_total INTEGER)')
+    conn.commit()
+    conn.close()
+
 def get_track_features(track_id):
     response = requests.get(BASE_URL + 'audio-features/' + track_id, headers=headers)
     return response.json()
-def get_playlist_tracks(playlist_id):
+
+def get_playlist_tracks(playlist_id, conn):
+    conn = sqlite3.connect('moodify.db')
+    c = conn.cursor()
     playlist_endpoint = f"{BASE_URL}playlists/{playlist_id}/tracks"
     response = requests.get(playlist_endpoint, headers=headers)
     if response.status_code != 200:
@@ -34,8 +50,15 @@ def get_playlist_tracks(playlist_id):
             'artists': [artist['name'] for artist in track['artists']],
             'album': track['album']['name']
         }
+
+        c.execute('INSERT OR REPLACE INTO songs (track_id, name, artist, album) VALUES (?, ?, ?, ?)',
+                    (track_info['id'], track_info['name'], ', '.join(track_info['artists']), track_info['album']))
+
         tracks.append(track_info)
+    conn.commit()
     return tracks
+
+
 def get_user_public_playlists(user_id, limit=50):
     # access_token = get_access_token()
     headers = {
@@ -83,12 +106,6 @@ def get_lyrics ():
         ])
     return response.choices[0].message.content
 
-
-
-
-
-
-
 def get_manual_recommendations():
     print("Manual recommendations:")
     recommendations = []
@@ -100,7 +117,19 @@ def get_manual_recommendations():
             'artists': [artist_name]
         })
     return recommendations
+
+def print_db(conn):
+    c = conn.cursor()
+    c.execute('SELECT * FROM songs')
+    rows = c.fetchall()
+    for row in rows:
+        print(row)
+def setup_database():
+    conn = sqlite3.connect('moodify.db')  
+    return conn
+
 def main():
+    conn = setup_database()
     print("Welcome to the Moodify App!")
     print("Type 1 to get mood recommendations")
     print("Type 2 to get lyrics of a song")
@@ -113,7 +142,7 @@ def main():
             all_tracks = []
             for playlist in playlists:
                 print(f"Getting tracks from playlist: {playlist['name']}")
-                playlist_tracks = get_playlist_tracks(playlist['id'])
+                playlist_tracks = get_playlist_tracks(playlist['id'], conn)
                 all_tracks.extend(playlist_tracks)
         else:
             all_tracks = get_manual_recommendations()
@@ -123,7 +152,8 @@ def main():
         print(get_lyrics())
     else:
         print("Invalid choice. Please try again.")
+    print_db(conn) 
+    conn.close()
 
 if __name__ == "__main__":
-        main()
-
+    main()
