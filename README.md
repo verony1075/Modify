@@ -27,4 +27,8 @@ Moodify utilizes Spotify API and OpenAI's GPT-3 to create a personalized music r
 * Python
 * SQLite
 * OpenAI GPT-3
+<<<<<<< HEAD
 * Spotify API
+=======
+* Spotify API
+>>>>>>> e0f172e0675049d4e5c420d0e9f25d1af80c4930
