@@ -27,7 +27,7 @@ def setup_database():
     c.execute('CREATE TABLE IF NOT EXISTS favorite_songs (user_id Text, name TEXT, artist TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS playlists (playlist_id TEXT PRIMARY KEY, name TEXT, owner TEXT, public BOOLEAN, collaborative BOOLEAN, tracks_total INTEGER)')
     conn.commit()
-    conn.close()
+    return conn
 
 def get_track_features(track_id):
     response = requests.get(BASE_URL + 'audio-features/' + track_id, headers=headers)
@@ -134,11 +134,14 @@ def get_create_username(conn):
         return username
 def favorite_song(user_id, conn):
     c = conn.cursor()
+    c.execute('CREATE TABLE IF NOT EXISTS favorite_songs (user_id TEXT, name TEXT, artist TEXT)')
+    conn.commit()
     song_name = input("Enter the name of the song you want to favorite: ")
     artist_name = input("Enter the name of the artist: ")
-    c.execute('INSERT OR REPLACE INTO favorite_songs (user_id, name, artist) VALUES (?, ?, ?)', (song_name, artist_name))
-    conn.commit(user_id)
+    c.execute('INSERT OR REPLACE INTO favorite_songs (user_id, name, artist) VALUES (?, ?, ?)', (user_id, song_name, artist_name))
+    conn.commit()
     print(f"Song {song_name} by {artist_name} has been added to your favorites.")
+
 def print_db(conn):
     c = conn.cursor()
     c.execute('SELECT * FROM songs')
@@ -150,45 +153,47 @@ def setup_database():
     return conn
 
 def main():
-    conn = setup_database()
-    get_create_username(conn)
-    print("Welcome to the Moodify App!")
-    print("Type 1 to get mood recommendations")
-    print("Type 2 to get lyrics of a song")
-    response = input("Enter your choice: ")
-    if response == "1":
-        user_spotify  = input("Do you want to use Spotify? (y/n) ")
-        if user_spotify == "y":
-            user_id = "6niwco3w1t5vjo511n09z5pbz"
-            playlists = get_user_public_playlists(user_id)
-            all_tracks = []
-            for playlist in playlists:
-                print(f"Getting tracks from playlist: {playlist['name']}")
-                playlist_tracks = get_playlist_tracks(playlist['id'], conn)
-                all_tracks.extend(playlist_tracks)
-        else:
-            all_tracks = get_manual_recommendations()
-        genre = input("Enter the genre you want to listen to: ")
-        mood = input("How are you feeling? (\n  options are: sad, happy, relaxing, workout) ")
-        if mood == "workout":
-            print(mood_recommendations("workout", all_tracks, genre))
-        elif mood == "sad":
-            print (mood_recommendations("sad", all_tracks, genre))
-        elif mood == "happy":
-            print(mood_recommendations("happy", all_tracks, genre))
-        elif mood == "relaxing":
-            print(mood_recommendations("relaxing", all_tracks, genre))
-        else:
-            print("Invalid mood. Please try again.")
-        if input(" would you like to add any of these songs to your favorite playlist? (y/n): ") == "y":
-            favorite_song(user_id,conn)
+    while True:
+
+        conn = setup_database()
+        get_create_username(conn)
+        print("Welcome to the Moodify App!")
+        print("Type 1 to get mood recommendations")
+        print("Type 2 to get lyrics of a song")
+        response = input("Enter your choice: ")
+        if response == "1":
+            user_spotify  = input("Do you want to use Spotify? (y/n) ")
+            if user_spotify == "y":
+                user_id = "6niwco3w1t5vjo511n09z5pbz"
+                playlists = get_user_public_playlists(user_id)
+                all_tracks = []
+                for playlist in playlists:
+                    print(f"Getting tracks from playlist: {playlist['name']}")
+                    playlist_tracks = get_playlist_tracks(playlist['id'], conn)
+                    all_tracks.extend(playlist_tracks)
+            else:
+                all_tracks = get_manual_recommendations()
+                genre = input("Enter the genre you want to listen to: ")
+            mood = input("How are you feeling? (\n  options are: sad, happy, relaxing, workout) ")
+            if mood == "workout":
+                print(mood_recommendations("workout", all_tracks, genre))
+            elif mood == "sad":
+                print (mood_recommendations("sad", all_tracks, genre))
+            elif mood == "happy":
+                print(mood_recommendations("happy", all_tracks, genre))
+            elif mood == "relaxing":
+                print(mood_recommendations("relaxing", all_tracks, genre))
+            else:
+                print("Invalid mood. Please try again.")
+            if input(" would you like to add any of these songs to your favorite playlist? (y/n): ") == "y":
+                favorite_song(user_id,conn)
         
-    elif response == "2":
-        print(get_lyrics())
-    else:
-        print("Invalid choice. Please try again.")
+        elif response == "2":
+            print(get_lyrics())
+        else:
+            print("Invalid choice. Please try again.")
     #print_db(conn) 
-    conn.close()
+        conn.close()
 
 if __name__ == "__main__":
     main()
