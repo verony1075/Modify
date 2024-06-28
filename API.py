@@ -4,6 +4,8 @@ import requests
 import openai
 from openai import OpenAI
 
+import hashlib
+
 
 OPENAI_API_KEY = os.getenv('OPENAI_KEY')
 SPOTIFY_CLIENT_ID = os.getenv('SPOTIFY_CLIENT_ID')
@@ -21,12 +23,13 @@ headers = {'Authorization': 'Bearer {token}'.format(token=access_token)}
 BASE_URL = 'https://api.spotify.com/v1/'
 
 def setup_database():
-    conn = sqlite3.connect('moodify.db')
+    conn = sqlite3.connect('moodify2.db')
     c = conn.cursor()
-    c.execute('CREATE TABLE IF NOT EXISTS users (user_id TEXT PRIMARY KEY, mood TEXT)')
+    c.execute('CREATE TABLE IF NOT EXISTS users (user_id TEXT PRIMARY KEY, password TEXT, mood TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS recommendations (user_id TEXT, track_id TEXT, mood TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS favorite_songs (user_id Text, name TEXT, artist TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS playlists (playlist_id TEXT PRIMARY KEY, name TEXT, owner TEXT, public BOOLEAN, collaborative BOOLEAN, tracks_total INTEGER)')
+    c.execute('CREATE TABLE IF NOT EXISTS songs (track_id TEXT PRIMARY KEY, name TEXT, artist TEXT, album TEXT)')
     conn.commit()
     return conn
 
@@ -35,7 +38,7 @@ def get_track_features(track_id):
     return response.json()
 
 def get_playlist_tracks(playlist_id, conn):
-    conn = sqlite3.connect('moodify.db')
+    conn = sqlite3.connect('moodify2.db')
     c = conn.cursor()
     playlist_endpoint = f"{BASE_URL}playlists/{playlist_id}/tracks"
     response = requests.get(playlist_endpoint, headers=headers)
@@ -130,13 +133,26 @@ def get_create_username(conn):
     while True:
         username = input("Enter your username (new or existing): ")
         c.execute("SELECT * FROM users WHERE user_id = ?", (username,))
-        if c.fetchone() is None:
-            c.execute("INSERT INTO users (user_id, mood) VALUES (?, ?)", (username, "neutral"))
+        user = c.fetchone()
+        if user is None:
+            password = input("Create a password: ")
+            hashed_password = hash_password(password)
+            c.execute("INSERT INTO users (user_id, password, mood) VALUES (?, ?, ?)", (username, hashed_password, "neutral"))
             conn.commit()
             print(f"Welcome, {username}! New user created.")
+            return username
         else:
-            print(f"Welcome back, {username}!")
-        return username
+            password = input("Enter your password: ")
+            hashed_password = hash_password(password)
+            if hashed_password == user[1]:
+                print(f"Welcome back, {username}!")
+                return username
+            else:
+                print("Incorrect pasword. Please try again")
+    
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
 def favorite_song(user_id, conn):
     c = conn.cursor()
     c.execute('CREATE TABLE IF NOT EXISTS favorite_songs (user_id TEXT, name TEXT, artist TEXT)')
@@ -161,28 +177,27 @@ def print_favorite_songs(user_id, conn):
             print(f"- {song[0]} by {song[1]}")
     else:
         print("You haven't added any favorite songs yet.")
+        return None
 
-def print_db(conn):
-    c = conn.cursor()
-    c.execute('SELECT * FROM songs')
-    rows = c.fetchall()
-    for row in rows:
-        print(row)
-def setup_database():
-    conn = sqlite3.connect('moodify.db')  
-    return conn
+def show_menu():
+    print("\nMoodify App Menu:")
+    print("1. Get mood recommendations")
+    print("2. Get lyrics of a song")
+    print("3. View your favorites")
+    print("4. Exit")
 
 def main():
-    while True:
+    conn = setup_database()
+    print("Welcome to the Moodify App!")
 
-        conn = setup_database()
-        
-        print("Welcome to the Moodify App!")
+    while True:
         username = get_create_username(conn)
-        print("Type 1 to get mood recommendations")
-        print("Type 2 to get lyrics of a song")
-        print("Type 3 to view  your favorites")
-        print("Type 4 to exit.")
+        if  username is not None:
+            break
+        print("Failed to log in. Try again")
+        
+    while True:
+        show_menu()
         response = input("Enter your choice: ")
         if response == "1":
             user_spotify  = input("Do you want to use Spotify? (y/n) ")
@@ -224,8 +239,7 @@ def main():
             break
         else:
             print("Invalid choice. Please try again.")
-    #print_db(conn) 
-        conn.close()
+    conn.close()
 
 if __name__ == "__main__":
     main()
