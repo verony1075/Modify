@@ -2,10 +2,8 @@ import os
 import sqlite3
 import requests
 import openai
-from openai import OpenAI
-
 import hashlib
-
+from openai import OpenAI
 
 OPENAI_API_KEY = os.getenv('OPENAI_KEY')
 SPOTIFY_CLIENT_ID = os.getenv('SPOTIFY_CLIENT_ID')
@@ -22,6 +20,7 @@ access_token = auth_response_data['access_token']
 headers = {'Authorization': 'Bearer {token}'.format(token=access_token)}
 BASE_URL = 'https://api.spotify.com/v1/'
 
+
 def setup_database():
     conn = sqlite3.connect('moodify2.db')
     c = conn.cursor()
@@ -33,9 +32,11 @@ def setup_database():
     conn.commit()
     return conn
 
+
 def get_track_features(track_id):
     response = requests.get(BASE_URL + 'audio-features/' + track_id, headers=headers)
     return response.json()
+
 
 def get_playlist_tracks(playlist_id, conn):
     conn = sqlite3.connect('moodify2.db')
@@ -64,7 +65,6 @@ def get_playlist_tracks(playlist_id, conn):
 
 
 def get_user_public_playlists(user_id, limit=50):
-    # access_token = get_access_token()
     headers = {
         'Authorization': f"Bearer {access_token}"
     }
@@ -213,7 +213,7 @@ def main():
             else:
                 all_tracks = get_manual_recommendations()
             genre = input("Enter the genre you want to listen to: ")
-            mood = input("How are you feeling? (\n  options are: sad, happy, relaxing, workout) ")
+            mood = input("How are you feeling? \n(options are: sad, happy, relaxing, workout, angsty) ")
             if mood == "workout":
                 print(mood_recommendations("workout", all_tracks, genre))
             elif mood == "sad":
@@ -222,6 +222,8 @@ def main():
                 print(mood_recommendations("happy", all_tracks, genre))
             elif mood == "relaxing":
                 print(mood_recommendations("relaxing", all_tracks, genre))
+            elif mood == "angsty":
+                print(mood_recommendations("angsty", all_tracks, genre))
             else:
                 print("Invalid mood. Please try again.")
             if input(" would you like to add any of these songs to your favorite playlist? (y/n): ") == "y":
